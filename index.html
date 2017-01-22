@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>动态生成表格</title>
+    <script src="lib/jquery-3.1.1.min.js"></script>
+    <script src="lib/dist/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="lib/dist/css/bootstrap.css">
+</head>
+<body>
+    <div id="content"></div>
+    <nav></nav>
+</body>
+<script>
+    const data = {
+        url:"data/data.json",
+        pageSize:7,
+        contSize:10,
+        id:"content"
+    };
+
+    /*
+    * url为请求数据地址
+    * pageSize显示页数
+    * contSize显示条数
+    * */
+    var jQCreatePageList = function(data){
+        $.ajax({
+            url:data.url,
+            dataType:"json",
+            type:"post",
+            success:function(d){
+                let pageSize = 7;
+                let contSize = 10;
+                let jsonData = d.result;
+                let pagesCounts = d.result.length / contSize;
+                $("#"+data.id).append("<table class='table table-bordered'></table>");
+                // 构建标题栏
+                for(let key in jsonData[0]){
+                    $("#"+data.id).find("table").append("<th>"+key+"</th>");
+                }
+                //构建分页按钮
+                $("nav").append("<ul class='pagination'>"+
+                "<li class='disabled'><span>&laquo;</span></li></ul>");
+                for(let i=0;i<10;i++){
+                    if(i==0){
+                        $("nav").find("ul").append("<li class='active'><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
+                    }else{
+
+                        $("nav").find("ul").append("<li><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
+                    }
+                }
+            }
+        })
+    };
+    jQCreatePageList(data);
+</script>
+</html>
