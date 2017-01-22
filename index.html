@@ -25,8 +25,9 @@
     * contSize显示条数
     * */
     var jQCreatePageList = function(data){
+        var dataObj = data;
         $.ajax({
-            url:data.url,
+            url:dataObj.url,
             dataType:"json",
             type:"post",
             success:function(d){
@@ -34,11 +35,25 @@
                 let contSize = 10;
                 let jsonData = d.result;
                 let pagesCounts = d.result.length / contSize;
-                $("#"+data.id).append("<table class='table table-bordered'></table>");
+                let nameArr = ["num"];
+                $("#"+dataObj.id).append("<table class='table table-bordered'></table>");
                 // 构建标题栏
+                $("#"+dataObj.id).find("table").append("<tr></tr>");
+                $("#"+dataObj.id).find("table tr:first-of-type").append("<th>num</th>");
                 for(let key in jsonData[0]){
-                    $("#"+data.id).find("table").append("<th>"+key+"</th>");
+                    $("#"+dataObj.id).find("table tr:first-of-type").append("<th>"+key+"</th>");
+                    nameArr.push(key);
                 }
+                console.log(nameArr)
+                //构建表格
+                $.each(jsonData,function (index,data) {
+                    let num = index+2;
+                    $("#"+dataObj.id).find("table").append("<tr><td>"+(num-1)+"</td></tr>");
+                    for(let j=1;j<nameArr.length;j++){
+                        let value = nameArr[j];
+                        $("#"+dataObj.id).find("table tr:nth-child("+(num)+")").append("<td>"+data[value]+"</td>")
+                    }
+                });
                 //构建分页按钮
                 $("nav").append("<ul class='pagination'>"+
                 "<li class='disabled'><span>&laquo;</span></li></ul>");
@@ -46,7 +61,6 @@
                     if(i==0){
                         $("nav").find("ul").append("<li class='active'><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
                     }else{
-
                         $("nav").find("ul").append("<li><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
                     }
                 }
