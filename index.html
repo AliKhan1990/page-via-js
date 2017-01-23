@@ -5,16 +5,41 @@
     <title>动态生成表格</title>
     <script src="lib/jquery-3.1.1.min.js"></script>
     <script src="lib/dist/js/bootstrap.min.js"></script>
-    <link rel="stylesheet" href="lib/dist/css/bootstrap.css">
+    <link rel="stylesheet" href="lib/dist/css/bootstrap.css" type="text/css">
+    <style>
+        table tr{
+            border: 1px solid #eee;
+        }
+        table th{
+            background: #eee;
+            text-align: center!important;
+        }
+        table td{
+            border-left:1px solid #eee ;
+            border-right:1px solid #eee ;
+        }
+        nav ul li{
+            cursor: pointer;
+        }
+        .turnDiv{
+            display: inline-block;
+            position: absolute;
+        }
+        .turnDiv input{
+            width: 35px;
+            height: 35px;
+            margin: 0 3px;
+        }
+    </style>
 </head>
 <body>
     <div id="content"></div>
-    <nav></nav>
+    <nav style="text-align: center;"></nav>
 </body>
 <script>
     const data = {
         url:"data/data.json",
-        pageSize:7,
+        pageSize:5,
         contSize:10,
         id:"content"
     };
@@ -26,44 +51,154 @@
     * */
     var jQCreatePageList = function(data){
         var dataObj = data;
+        var createTableViaJson = function(d){
+            let jsonData = d.result;
+            let pageSize = dataObj.pageSize;
+            let contSize = dataObj.contSize;
+            let pagesCounts = Math.ceil(d.result.length / contSize);
+            let pageOffset = Math.floor(pageSize / 2);
+            console.log("总页数：",pagesCounts);
+            //初始化标题数据
+            let nameArr = ["#"];
+            for(let key in jsonData[0]){
+                nameArr.push(key);
+            }
+            //初始化表格
+            $("#"+dataObj.id).append("<table class='table table-bordered table-hover table-condensed' style='text-align: center;'></table>");
+            //构建标题栏
+            function creatTile() {
+                $("#"+dataObj.id).find("table").append("<tr></tr>");
+                for(let i=0;i<nameArr.length;i++){
+                    $("#"+dataObj.id).find("table tr:first-of-type").append("<th>"+nameArr[i]+"</th>");
+                }
+            }
+            //初始化标题
+            creatTile();
+            //初始化表格内容:TODO:FIRST
+            $.each(jsonData,function (index,data) {
+                if(index>=contSize){
+                    return false;
+                }
+                let num = index+2;
+                $("#"+dataObj.id).find("table").append("<tr><td>"+(num-1)+"</td></tr>");
+                for(let j=1;j<nameArr.length;j++){
+                    let value = nameArr[j];
+                    $("#"+dataObj.id).find("table tr:nth-child("+(num)+")").append("<td>"+data[value]+"</td>")
+                }
+            });
+            //构建分页按钮 TODO:<span>&laquo;</span>
+            function createPageBtn(select){
+                $("nav").html("");
+                $("nav").append("<ul class='pagination'  style='margin: 0 auto;'></ul>");
+                if(select==null){
+                    for(let i=0;i<pageSize && i<=pagesCounts;i++){
+                        if(i==0){
+                            $("nav").find("ul").append("<li class='active'><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
+                        }else{
+                            $("nav").find("ul").append("<li><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
+                        }
+                    }
+                }else if(select){
+                    let first = select-pageOffset;
+                    let last = select+pageOffset;
+                    for(let i=first;i<=last && i<=pagesCounts;i++){
+                        if(i==select){
+                            $("nav").find("ul").append("<li class='active'><span>"+select+"<span class='sr-only'>(current)</span></span></li>");
+                        }else{
+                            $("nav").find("ul").append("<li><span>"+i+"<span class='sr-only'>(current)</span></span></li>");
+                        }
+                    }
+                }
+                $("nav").append("<div class='turnDiv'><input class='userInputNum' type='number'><button class='btn btn-success' id='turnPage'>跳转</button></div>");
+            }
+            createPageBtn();
+            //分页点击效果
+            //---构建表格
+            function turnPage(num,dom){
+                let actBtnNum = 0;
+                if(num){
+                    actBtnNum = num;
+                    console.log("输入",actBtnNum);
+                }else{
+                    actBtnNum = $(dom).text().substring(0,$(dom).text().indexOf("("));
+                    console.log("点击",actBtnNum);
+                }
+                $.each(jsonData,function (index,data) {
+                    //范围控制
+                    if(index >= contSize*(actBtnNum-1) &&　index < contSize*actBtnNum){
+                        let num = index+2;
+                        $("#"+dataObj.id).find("table").append("<tr><td>"+(num-1)+"</td></tr>");
+                        for(let j=1;j<nameArr.length;j++){
+                            let value = nameArr[j];
+                            $("#"+dataObj.id).find("table tr:nth-child("+(num-contSize*(actBtnNum-1))+")").append("<td>"+data[value]+"</td>")
+                        }
+                    }
+                });
+            }
+            // TODO:
+            let pageBtnLength = $("nav ul li").length;
+            let max = 0;
+            let min = 0;
+            for(let m = 0;m < pageBtnLength;m++){
+                let pageBtn = parseInt($("nav ul li").eq(m).text().substring(0,$("nav ul li").text().indexOf("(")));
+                if(typeof pageBtn == "number" && pageBtn>max){
+                    max = pageBtn;
+                }
+                if(typeof pageBtn == "number" && pageBtn<=min || min==0){
+                    min = pageBtn;
+                }
+            }
+            console.log(max,min);
+            //分页按钮点击
+            var pageBtnClick = function(){
+                $("nav").find("ul li").on("click",function () {
+                    var that = this;
+                    $(this).addClass("active").siblings().removeClass("active");
+                    //初始化表格
+                    $("#"+dataObj.id).find("table").html("");//清空表格
+                    creatTile();//初始化标题栏
+                    turnPage(null,that);
+                });
+            };
+            pageBtnClick();
+            //跳转页面
+            var pageTurn = function(){
+                $("#turnPage").on("click",function(){
+                    let inputNum = parseInt($(".userInputNum").val());
+                    let reCreateTabel = function(){
+                        $("#"+dataObj.id).find("table").html("");//清空表格
+                        creatTile();//初始化标题栏
+                        turnPage(inputNum,null);
+                        for(let k = 0;k < pageBtnLength;k++){
+                            let pageBtn = parseInt($("nav ul li").eq(k).text().substring(0,$("nav ul li").text().indexOf("(")));
+                            if( pageBtn == inputNum){
+                                $("nav ul li").eq(k).addClass("active").siblings().removeClass("active");
+                                return false;
+                            }
+                        }
+                    };
+                    if(inputNum<=0 || inputNum==null || typeof inputNum!="number" || inputNum >pagesCounts){
+                        alert("亲爱的，你输入的有误~");
+                        return false;
+                    }else if(inputNum<=max && inputNum>=min){
+                        reCreateTabel();
+                    }else if(inputNum-pageOffset>min){
+                        min = inputNum-pageOffset;
+                        createPageBtn(inputNum);
+                        reCreateTabel();
+                    }else if(inputNum<min){
+
+                    }
+                });
+            };
+            pageTurn();
+        };
         $.ajax({
             url:dataObj.url,
             dataType:"json",
             type:"post",
             success:function(d){
-                let pageSize = 7;
-                let contSize = 10;
-                let jsonData = d.result;
-                let pagesCounts = d.result.length / contSize;
-                let nameArr = ["num"];
-                $("#"+dataObj.id).append("<table class='table table-bordered'></table>");
-                // 构建标题栏
-                $("#"+dataObj.id).find("table").append("<tr></tr>");
-                $("#"+dataObj.id).find("table tr:first-of-type").append("<th>num</th>");
-                for(let key in jsonData[0]){
-                    $("#"+dataObj.id).find("table tr:first-of-type").append("<th>"+key+"</th>");
-                    nameArr.push(key);
-                }
-                console.log(nameArr)
-                //构建表格
-                $.each(jsonData,function (index,data) {
-                    let num = index+2;
-                    $("#"+dataObj.id).find("table").append("<tr><td>"+(num-1)+"</td></tr>");
-                    for(let j=1;j<nameArr.length;j++){
-                        let value = nameArr[j];
-                        $("#"+dataObj.id).find("table tr:nth-child("+(num)+")").append("<td>"+data[value]+"</td>")
-                    }
-                });
-                //构建分页按钮
-                $("nav").append("<ul class='pagination'>"+
-                "<li class='disabled'><span>&laquo;</span></li></ul>");
-                for(let i=0;i<10;i++){
-                    if(i==0){
-                        $("nav").find("ul").append("<li class='active'><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
-                    }else{
-                        $("nav").find("ul").append("<li><span>"+(i+1)+"<span class='sr-only'>(current)</span></span></li>");
-                    }
-                }
+                createTableViaJson(d);
             }
         })
     };
