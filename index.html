@@ -208,7 +208,7 @@
     let ajaxRequestData = function(){
         $.ajax({
             url:dataObj.url,
-            dataType:"json",
+            //dataType:"json",
             type:"post",
             success:function(d){
                 createTableViaJson(d);
